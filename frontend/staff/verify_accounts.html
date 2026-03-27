@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>E-Gov | Account Verification</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2/dist/tailwind.min.css" rel="stylesheet"/>
+</head>
+<body class="min-h-screen bg-gray-50">
+
+  <nav class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+    <div>
+      <h1 class="text-lg font-semibold text-blue-700">Barangay E-Gov Portal</h1>
+      <p class="text-xs text-gray-400">Account Verification Queue</p>
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="dashboard.html" class="text-sm text-blue-600 hover:underline">Back to Dashboard</a>
+      <span id="staff-name" class="text-sm text-gray-600"></span>
+      <button id="logout-btn" class="text-sm text-gray-500 hover:text-red-600 border border-gray-300 rounded-lg px-3 py-1">Log out</button>
+    </div>
+  </nav>
+
+  <div class="max-w-5xl mx-auto px-4 py-8">
+
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h2 class="text-lg font-semibold text-gray-800">Pending Account Verifications</h2>
+        <p class="text-sm text-gray-400 mt-1">Review resident ID photos and verify their accounts</p>
+      </div>
+      <span id="pending-count" class="text-xs font-medium px-3 py-1.5 rounded-full bg-yellow-100 text-yellow-700"></span>
+    </div>
+
+    <div id="accounts-list">
+      <div class="text-center text-gray-400 py-16">Loading...</div>
+    </div>
+
+  </div>
+
+  <!-- ID Review Modal -->
+  <div id="review-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:50;" class="flex items-start justify-center pt-10 px-4 pb-10 overflow-y-auto">
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6">
+
+      <div class="flex justify-between items-center mb-5">
+        <h3 class="text-lg font-semibold text-gray-800">Review Account</h3>
+        <button id="close-review" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+      </div>
+
+      <!-- ID Photo -->
+      <div class="mb-5">
+        <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Uploaded ID Photo</p>
+        <img id="modal-id-photo" src="" alt="ID Photo"
+          class="w-full rounded-lg border border-gray-200 object-contain max-h-64 bg-gray-50"/>
+      </div>
+
+      <!-- Resident info -->
+      <div class="bg-gray-50 rounded-lg p-4 mb-5">
+        <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Resident Information</p>
+        <div class="space-y-1.5 text-sm">
+          <div><span class="text-gray-400">Name:</span> <span id="modal-name" class="text-gray-800 font-medium ml-2"></span></div>
+          <div><span class="text-gray-400">Email:</span> <span id="modal-email" class="text-gray-800 ml-2"></span></div>
+          <div><span class="text-gray-400">Phone:</span> <span id="modal-phone" class="text-gray-800 ml-2"></span></div>
+          <div><span class="text-gray-400">Address:</span> <span id="modal-address" class="text-gray-800 ml-2"></span></div>
+          <div><span class="text-gray-400">Registered:</span> <span id="modal-date" class="text-gray-800 ml-2"></span></div>
+        </div>
+      </div>
+
+      <div class="mb-5">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Rejection Reason <span class="text-gray-400 font-normal">(required if rejecting)</span></label>
+        <textarea id="rejection-reason" rows="2" placeholder="e.g. ID photo is blurry, invalid ID type..."
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+      </div>
+
+      <div class="flex gap-3">
+        <button id="verify-btn" class="flex-1 bg-green-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-green-700 transition">Verify Account</button>
+        <button id="reject-account-btn" class="flex-1 bg-red-500 text-white rounded-lg py-2 text-sm font-medium hover:bg-red-600 transition">Reject</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const SUPABASE_URL = 'https://eswmvmrbmcgexizgizmb.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_Zb736dLGvnXmzC1QCcr_UA_abncYdsC';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let activeAccount = null;
+
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { window.location.href = '../index.html'; return; }
+
+      const { data: profile } = await supabase
+        .schema('public').from('users')
+        .select('full_name, role').eq('id', user.id).maybeSingle();
+
+      if (!profile || (profile.role !== 'staff' && profile.role !== 'admin')) {
+        window.location.href = '../index.html'; return;
+      }
+
+      document.getElementById('staff-name').textContent = profile.full_name;
+      loadAccounts();
+    }
+
+    async function loadAccounts() {
+      const { data, error } = await supabase
+        .schema('public').from('users')
+        .select('id, full_name, email, phone, address, id_photo_url, created_at')
+        .eq('role', 'resident')
+        .eq('is_verified', false)
+        .order('created_at', { ascending: true });
+
+      const container = document.getElementById('accounts-list');
+      const countEl   = document.getElementById('pending-count');
+
+      if (error) { console.error(error); return; }
+
+      countEl.textContent = `${data?.length || 0} pending`;
+
+      if (!data || data.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white border border-gray-200 rounded-xl p-16 text-center">
+            <p class="text-gray-400 text-sm">No pending verifications. All accounts are verified.</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = data.map(acc => `
+        <div class="bg-white border border-gray-200 rounded-xl p-5 mb-4 flex items-center gap-5">
+          <img src="${acc.id_photo_url || ''}" alt="ID"
+            class="w-20 h-14 object-cover rounded-lg border border-gray-200 bg-gray-50 flex-shrink-0"
+            onerror="this.src=''; this.classList.add('bg-gray-100');"/>
+          <div class="flex-1">
+            <p class="text-sm font-medium text-gray-800">${acc.full_name}</p>
+            <p class="text-xs text-gray-400">${acc.email}</p>
+            <p class="text-xs text-gray-400">${acc.phone} — ${acc.address}</p>
+            <p class="text-xs text-gray-300 mt-0.5">Registered: ${new Date(acc.created_at).toLocaleDateString('en-PH', {year:'numeric',month:'short',day:'numeric'})}</p>
+          </div>
+          <button onclick="openReview('${acc.id}')"
+            class="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex-shrink-0">
+            Review
+          </button>
+        </div>`).join('');
+
+      window._accounts = data;
+    }
+
+    window.openReview = function(id) {
+      activeAccount = window._accounts.find(a => a.id === id);
+      if (!activeAccount) return;
+
+      document.getElementById('modal-id-photo').src  = activeAccount.id_photo_url || '';
+      document.getElementById('modal-name').textContent    = activeAccount.full_name;
+      document.getElementById('modal-email').textContent   = activeAccount.email;
+      document.getElementById('modal-phone').textContent   = activeAccount.phone || '—';
+      document.getElementById('modal-address').textContent = activeAccount.address || '—';
+      document.getElementById('modal-date').textContent    = new Date(activeAccount.created_at).toLocaleDateString('en-PH', {year:'numeric',month:'long',day:'numeric'});
+      document.getElementById('rejection-reason').value    = '';
+      document.getElementById('review-modal').style.display = 'flex';
+    };
+
+    document.getElementById('close-review').addEventListener('click', () => {
+      document.getElementById('review-modal').style.display = 'none';
+      activeAccount = null;
+    });
+
+    // ── Verify account ────────────────────────────────────────────
+    document.getElementById('verify-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('verify-btn');
+      btn.textContent = 'Verifying...';
+      btn.disabled    = true;
+
+      const { error } = await supabase
+        .schema('public').from('users')
+        .update({ is_verified: true })
+        .eq('id', activeAccount.id);
+
+      if (error) {
+        alert('Error: ' + error.message);
+        btn.textContent = 'Verify Account';
+        btn.disabled    = false;
+        return;
+      }
+
+      document.getElementById('review-modal').style.display = 'none';
+      alert(`${activeAccount.full_name}'s account has been verified. They can now log in and submit requests.`);
+      await loadAccounts();
+
+      btn.textContent = 'Verify Account';
+      btn.disabled    = false;
+    });
+
+    // ── Reject account ────────────────────────────────────────────
+    document.getElementById('reject-account-btn').addEventListener('click', async () => {
+      const reason = document.getElementById('rejection-reason').value.trim();
+      if (!reason) {
+        alert('Please provide a rejection reason before rejecting.');
+        return;
+      }
+
+      const btn = document.getElementById('reject-account-btn');
+      btn.textContent = 'Rejecting...';
+      btn.disabled    = true;
+
+      // Delete the auth account and user record
+      const { error } = await supabase
+        .schema('public').from('users')
+        .delete()
+        .eq('id', activeAccount.id);
+
+      if (error) {
+        alert('Error: ' + error.message);
+        btn.textContent = 'Reject';
+        btn.disabled    = false;
+        return;
+      }
+
+      document.getElementById('review-modal').style.display = 'none';
+      alert(`${activeAccount.full_name}'s account has been rejected. Reason: ${reason}`);
+      await loadAccounts();
+
+      btn.textContent = 'Reject';
+      btn.disabled    = false;
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      window.location.href = '../index.html';
+    });
+
+    init();
+  </script>
+
+</body>
+</html>

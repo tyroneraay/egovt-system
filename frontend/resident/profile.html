@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>E-Gov | My Profile</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2/dist/tailwind.min.css" rel="stylesheet"/>
+</head>
+<body class="min-h-screen bg-gray-50">
+
+  <nav class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+    <div>
+      <h1 class="text-lg font-semibold text-blue-700">Barangay E-Gov Portal</h1>
+      <p class="text-xs text-gray-400">My Profile</p>
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="dashboard.html" class="text-sm text-blue-600 hover:underline">Back to Dashboard</a>
+      <button id="logout-btn" class="text-sm text-gray-500 hover:text-red-600 border border-gray-300 rounded-lg px-3 py-1">Log out</button>
+    </div>
+  </nav>
+
+  <div class="max-w-xl mx-auto px-4 py-10">
+
+    <!-- Avatar + name header -->
+    <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6 flex items-center gap-5">
+      <div id="avatar" class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-2xl font-semibold text-blue-600 flex-shrink-0"></div>
+      <div>
+        <p id="header-name" class="text-lg font-semibold text-gray-800"></p>
+        <p id="header-email" class="text-sm text-gray-400"></p>
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 mt-1 inline-block">Resident</span>
+      </div>
+    </div>
+
+    <!-- Profile form -->
+    <div class="bg-white border border-gray-200 rounded-xl p-6">
+
+      <div class="flex justify-between items-center mb-5">
+        <h2 class="text-sm font-semibold text-gray-800">Personal Information</h2>
+        <button id="edit-toggle-btn" class="text-xs border border-blue-500 text-blue-600 rounded-lg px-3 py-1.5 hover:bg-blue-50">Edit</button>
+      </div>
+
+      <div id="success-msg" class="hidden bg-green-50 text-green-700 text-sm rounded-lg p-3 mb-4"></div>
+      <div id="error-msg" class="hidden bg-red-50 text-red-700 text-sm rounded-lg p-3 mb-4"></div>
+
+      <!-- View mode -->
+      <div id="view-mode" class="space-y-4">
+        <div class="flex justify-between items-center py-3 border-b border-gray-100">
+          <span class="text-sm text-gray-400">Full Name</span>
+          <span id="v-name" class="text-sm font-medium text-gray-800"></span>
+        </div>
+        <div class="flex justify-between items-center py-3 border-b border-gray-100">
+          <span class="text-sm text-gray-400">Email</span>
+          <span id="v-email" class="text-sm text-gray-800"></span>
+        </div>
+        <div class="flex justify-between items-center py-3 border-b border-gray-100">
+          <span class="text-sm text-gray-400">Phone Number</span>
+          <span id="v-phone" class="text-sm text-gray-800"></span>
+        </div>
+        <div class="flex justify-between items-start py-3">
+          <span class="text-sm text-gray-400">Home Address</span>
+          <span id="v-address" class="text-sm text-gray-800 text-right max-w-xs"></span>
+        </div>
+      </div>
+
+      <!-- Edit mode -->
+      <div id="edit-mode" class="hidden space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+          <input id="e-name" type="text"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-gray-400 font-normal">(cannot be changed)</span></label>
+          <input id="e-email" type="email" disabled
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-400 cursor-not-allowed"/>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+          <input id="e-phone" type="text" placeholder="09xxxxxxxxx"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Home Address</label>
+          <input id="e-address" type="text" placeholder="House No., Street, Barangay"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button id="save-btn" class="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 transition">Save Changes</button>
+          <button id="cancel-btn" class="flex-1 border border-gray-300 text-gray-600 rounded-lg py-2 text-sm hover:bg-gray-50 transition">Cancel</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Change password section -->
+    <div class="bg-white border border-gray-200 rounded-xl p-6 mt-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-sm font-semibold text-gray-800">Change Password</h2>
+        <button id="pwd-toggle-btn" class="text-xs border border-gray-300 text-gray-600 rounded-lg px-3 py-1.5 hover:bg-gray-50">Change</button>
+      </div>
+
+      <div id="pwd-form" class="hidden space-y-4">
+        <div id="pwd-error" class="hidden bg-red-50 text-red-700 text-sm rounded-lg p-3"></div>
+        <div id="pwd-success" class="hidden bg-green-50 text-green-700 text-sm rounded-lg p-3"></div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+          <input id="new-password" type="password" placeholder="At least 6 characters"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+          <input id="confirm-password" type="password" placeholder="Repeat new password"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+        </div>
+        <button id="save-pwd-btn" class="w-full bg-gray-800 text-white rounded-lg py-2 text-sm font-medium hover:bg-gray-900 transition">Update Password</button>
+      </div>
+
+      <p id="pwd-placeholder" class="text-sm text-gray-400">Password is hidden for security.</p>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const SUPABASE_URL = 'https://eswmvmrbmcgexizgizmb.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_Zb736dLGvnXmzC1QCcr_UA_abncYdsC';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser    = null;
+    let currentProfile = null;
+
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { window.location.href = '../index.html'; return; }
+      currentUser = user;
+
+      const { data: profile } = await supabase
+        .schema('public').from('users')
+        .select('full_name, email, phone, address')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!profile) return;
+      currentProfile = profile;
+      renderProfile(profile);
+    }
+
+    function renderProfile(p) {
+      const initials = p.full_name
+        ? p.full_name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+        : '?';
+
+      document.getElementById('avatar').textContent       = initials;
+      document.getElementById('header-name').textContent  = p.full_name || '—';
+      document.getElementById('header-email').textContent = p.email || '—';
+
+      document.getElementById('v-name').textContent    = p.full_name || '—';
+      document.getElementById('v-email').textContent   = p.email || '—';
+      document.getElementById('v-phone').textContent   = p.phone || '—';
+      document.getElementById('v-address').textContent = p.address || '—';
+    }
+
+    // ── Toggle edit mode ──────────────────────────────────────────
+    document.getElementById('edit-toggle-btn').addEventListener('click', () => {
+      document.getElementById('view-mode').classList.add('hidden');
+      document.getElementById('edit-mode').classList.remove('hidden');
+      document.getElementById('edit-toggle-btn').classList.add('hidden');
+
+      document.getElementById('e-name').value    = currentProfile.full_name || '';
+      document.getElementById('e-email').value   = currentProfile.email || '';
+      document.getElementById('e-phone').value   = currentProfile.phone || '';
+      document.getElementById('e-address').value = currentProfile.address || '';
+    });
+
+    document.getElementById('cancel-btn').addEventListener('click', () => {
+      document.getElementById('edit-mode').classList.add('hidden');
+      document.getElementById('view-mode').classList.remove('hidden');
+      document.getElementById('edit-toggle-btn').classList.remove('hidden');
+      document.getElementById('error-msg').classList.add('hidden');
+      document.getElementById('success-msg').classList.add('hidden');
+    });
+
+    // ── Save profile ──────────────────────────────────────────────
+    document.getElementById('save-btn').addEventListener('click', async () => {
+      const name    = document.getElementById('e-name').value.trim();
+      const phone   = document.getElementById('e-phone').value.trim();
+      const address = document.getElementById('e-address').value.trim();
+      const errBox  = document.getElementById('error-msg');
+      const sucBox  = document.getElementById('success-msg');
+      const btn     = document.getElementById('save-btn');
+
+      errBox.classList.add('hidden');
+      sucBox.classList.add('hidden');
+
+      if (!name || !phone || !address) {
+        errBox.textContent = 'Please fill in all fields.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      btn.textContent = 'Saving...';
+      btn.disabled    = true;
+
+      const { error } = await supabase
+        .schema('public').from('users')
+        .update({ full_name: name, phone, address })
+        .eq('id', currentUser.id);
+
+      if (error) {
+        errBox.textContent = 'Error: ' + error.message;
+        errBox.classList.remove('hidden');
+        btn.textContent = 'Save Changes';
+        btn.disabled    = false;
+        return;
+      }
+
+      currentProfile = { ...currentProfile, full_name: name, phone, address };
+      renderProfile(currentProfile);
+
+      document.getElementById('edit-mode').classList.add('hidden');
+      document.getElementById('view-mode').classList.remove('hidden');
+      document.getElementById('edit-toggle-btn').classList.remove('hidden');
+
+      sucBox.textContent = 'Profile updated successfully!';
+      sucBox.classList.remove('hidden');
+      setTimeout(() => sucBox.classList.add('hidden'), 3000);
+
+      btn.textContent = 'Save Changes';
+      btn.disabled    = false;
+    });
+
+    // ── Change password ───────────────────────────────────────────
+    document.getElementById('pwd-toggle-btn').addEventListener('click', () => {
+      document.getElementById('pwd-form').classList.remove('hidden');
+      document.getElementById('pwd-placeholder').classList.add('hidden');
+      document.getElementById('pwd-toggle-btn').classList.add('hidden');
+    });
+
+    document.getElementById('save-pwd-btn').addEventListener('click', async () => {
+      const newPwd  = document.getElementById('new-password').value;
+      const confirm = document.getElementById('confirm-password').value;
+      const errBox  = document.getElementById('pwd-error');
+      const sucBox  = document.getElementById('pwd-success');
+      const btn     = document.getElementById('save-pwd-btn');
+
+      errBox.classList.add('hidden');
+      sucBox.classList.add('hidden');
+
+      if (!newPwd || !confirm) {
+        errBox.textContent = 'Please fill in both fields.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+      if (newPwd !== confirm) {
+        errBox.textContent = 'Passwords do not match.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+      if (newPwd.length < 6) {
+        errBox.textContent = 'Password must be at least 6 characters.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      btn.textContent = 'Updating...';
+      btn.disabled    = true;
+
+      const { error } = await supabase.auth.updateUser({ password: newPwd });
+
+      if (error) {
+        errBox.textContent = 'Error: ' + error.message;
+        errBox.classList.remove('hidden');
+        btn.textContent = 'Update Password';
+        btn.disabled    = false;
+        return;
+      }
+
+      sucBox.textContent = 'Password updated successfully!';
+      sucBox.classList.remove('hidden');
+      document.getElementById('new-password').value     = '';
+      document.getElementById('confirm-password').value = '';
+      btn.textContent = 'Update Password';
+      btn.disabled    = false;
+    });
+
+    // ── Logout ────────────────────────────────────────────────────
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      window.location.href = '../index.html';
+    });
+
+    init();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>E-Gov | Login</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2/dist/tailwind.min.css" rel="stylesheet"/>
+</head>
+<body class="min-h-screen bg-gray-50 flex items-center justify-center">
+
+  <div class="bg-white rounded-xl shadow p-8 w-full max-w-md">
+
+    <h1 class="text-2xl font-semibold text-gray-800 mb-1">Welcome back</h1>
+    <p class="text-sm text-gray-500 mb-6">Barangay E-Government Portal</p>
+
+    <div id="error-msg" class="hidden bg-red-50 text-red-700 text-sm rounded-lg p-3 mb-4"></div>
+
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+      <input id="email" type="email" placeholder="you@email.com"
+        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+    </div>
+
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+      <input id="password" type="password" placeholder="••••••••"
+        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+    </div>
+
+    <button id="login-btn"
+      class="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 transition">
+      Log in
+    </button>
+
+    <p class="text-center text-sm text-gray-500 mt-4">
+      No account yet?
+      <a href="register.html" class="text-blue-600 hover:underline">Register here</a>
+    </p>
+
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const SUPABASE_URL = 'https://eswmvmrbmcgexizgizmb.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_Zb736dLGvnXmzC1QCcr_UA_abncYdsC';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    document.getElementById('login-btn').addEventListener('click', async function () {
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const errBox   = document.getElementById('error-msg');
+      const btn      = document.getElementById('login-btn');
+
+      errBox.classList.add('hidden');
+
+      if (!email || !password) {
+        errBox.textContent = 'Please fill in all fields.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Logging in...';
+
+      // Step 1: Sign in with Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        errBox.textContent = 'Login Error: ' + error.message;
+        errBox.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Log in';
+        return;
+      }
+
+      // Step 2: Get role from public.users table
+      const { data: userData, error: roleError } = await supabase
+        .schema('public')
+        .from('users')
+        .select('role')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+        console.log('user id:', data.user.id);
+        console.log('user email:', data.user.email);
+        console.log('userData:', userData);
+        console.log('roleError:', roleError);
+
+      if (roleError || !userData) {
+        errBox.textContent = 'Could not fetch user role: ' + (roleError?.message || 'No data');
+        errBox.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Log in';
+        return;
+      }
+
+      // Step 3: Redirect based on role
+      if (userData.role === 'admin')       window.location.href = 'admin/dashboard.html';
+      else if (userData.role === 'staff')  window.location.href = 'staff/dashboard.html';
+      else                                 window.location.href = 'resident/dashboard.html';
+    });
+
+
+    const { data: userData, error: roleError } = await supabase
+  .schema('public').from('users')
+  .select('role, is_verified')
+  .eq('id', data.user.id)
+  .maybeSingle();
+
+if (roleError || !userData) {
+  errBox.textContent = 'Could not fetch user role.';
+  errBox.classList.remove('hidden');
+  btn.disabled = false; btn.textContent = 'Log in';
+  return;
+}
+
+// Block unverified residents
+if (userData.role === 'resident' && !userData.is_verified) {
+  errBox.textContent = 'Your account is pending verification. Please wait for staff to review your ID.';
+  errBox.classList.remove('hidden');
+  await supabase.auth.signOut();
+  btn.disabled = false; btn.textContent = 'Log in';
+  return;
+}
+
+if (userData.role === 'admin')      window.location.href = 'admin/dashboard.html';
+else if (userData.role === 'staff') window.location.href = 'staff/dashboard.html';
+else                                window.location.href = 'resident/dashboard.html';
+  </script>
+
+</body>
+</html>
