@@ -60,10 +60,10 @@
         return;
       }
 
-      btn.disabled = true;
+      btn.disabled    = true;
       btn.textContent = 'Logging in...';
 
-      // Step 1: Sign in with Supabase Auth
+      // Step 1: Sign in
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
@@ -74,18 +74,13 @@
         return;
       }
 
-      // Step 2: Get role from public.users table
+      // Step 2: Get role and verification status
       const { data: userData, error: roleError } = await supabase
         .schema('public')
         .from('users')
-        .select('role')
+        .select('role, is_verified')
         .eq('id', data.user.id)
         .maybeSingle();
-
-        console.log('user id:', data.user.id);
-        console.log('user email:', data.user.email);
-        console.log('userData:', userData);
-        console.log('roleError:', roleError);
 
       if (roleError || !userData) {
         errBox.textContent = 'Could not fetch user role: ' + (roleError?.message || 'No data');
@@ -95,38 +90,21 @@
         return;
       }
 
-      // Step 3: Redirect based on role
+      // Step 3: Block unverified residents
+      if (userData.role === 'resident' && !userData.is_verified) {
+        errBox.textContent = 'Your account is pending verification. Please wait for staff to review your ID.';
+        errBox.classList.remove('hidden');
+        await supabase.auth.signOut();
+        btn.disabled = false;
+        btn.textContent = 'Log in';
+        return;
+      }
+
+      // Step 4: Redirect based on role
       if (userData.role === 'admin')       window.location.href = 'admin/dashboard.html';
       else if (userData.role === 'staff')  window.location.href = 'staff/dashboard.html';
       else                                 window.location.href = 'resident/dashboard.html';
     });
-
-
-    const { data: userData, error: roleError } = await supabase
-  .schema('public').from('users')
-  .select('role, is_verified')
-  .eq('id', data.user.id)
-  .maybeSingle();
-
-if (roleError || !userData) {
-  errBox.textContent = 'Could not fetch user role.';
-  errBox.classList.remove('hidden');
-  btn.disabled = false; btn.textContent = 'Log in';
-  return;
-}
-
-// Block unverified residents
-if (userData.role === 'resident' && !userData.is_verified) {
-  errBox.textContent = 'Your account is pending verification. Please wait for staff to review your ID.';
-  errBox.classList.remove('hidden');
-  await supabase.auth.signOut();
-  btn.disabled = false; btn.textContent = 'Log in';
-  return;
-}
-
-if (userData.role === 'admin')      window.location.href = 'admin/dashboard.html';
-else if (userData.role === 'staff') window.location.href = 'staff/dashboard.html';
-else                                window.location.href = 'resident/dashboard.html';
   </script>
 
 </body>
