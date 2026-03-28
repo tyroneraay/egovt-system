@@ -169,7 +169,7 @@
     document.getElementById('verify-btn').addEventListener('click', async () => {
       const btn = document.getElementById('verify-btn');
       btn.textContent = 'Verifying...';
-      btn.disabled    = true;
+      btn.disabled = true;
 
       const { error } = await supabase
         .schema('public').from('users')
@@ -179,16 +179,26 @@
       if (error) {
         alert('Error: ' + error.message);
         btn.textContent = 'Verify Account';
-        btn.disabled    = false;
+        btn.disabled = false;
         return;
       }
 
-      document.getElementById('review-modal').style.display = 'none';
-      alert(`${activeAccount.full_name}'s account has been verified. They can now log in and submit requests.`);
-      await loadAccounts();
+      // Send email + SMS notification
+      await fetch('http://localhost:3000/api/notify/verified', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: activeAccount.full_name,
+          email:     activeAccount.email,
+          phone:     activeAccount.phone,
+        })
+      });
 
+      document.getElementById('review-modal').style.display = 'none';
+      alert(`${activeAccount.full_name}'s account has been verified. Email and SMS sent!`);
+      await loadAccounts();
       btn.textContent = 'Verify Account';
-      btn.disabled    = false;
+      btn.disabled = false;
     });
 
     // ── Reject account ────────────────────────────────────────────
@@ -201,9 +211,8 @@
 
       const btn = document.getElementById('reject-account-btn');
       btn.textContent = 'Rejecting...';
-      btn.disabled    = true;
+      btn.disabled = true;
 
-      // Delete the auth account and user record
       const { error } = await supabase
         .schema('public').from('users')
         .delete()
@@ -212,21 +221,27 @@
       if (error) {
         alert('Error: ' + error.message);
         btn.textContent = 'Reject';
-        btn.disabled    = false;
+        btn.disabled = false;
         return;
       }
 
+      // Send email + SMS notification
+      await fetch('http://localhost:3000/api/notify/rejected', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: activeAccount.full_name,
+          email:     activeAccount.email,
+          phone:     activeAccount.phone,
+          reason:    reason,
+        })
+      });
+
       document.getElementById('review-modal').style.display = 'none';
-      alert(`${activeAccount.full_name}'s account has been rejected. Reason: ${reason}`);
+      alert(`${activeAccount.full_name}'s account has been rejected. Email and SMS sent!`);
       await loadAccounts();
-
       btn.textContent = 'Reject';
-      btn.disabled    = false;
-    });
-
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-      await supabase.auth.signOut();
-      window.location.href = '../index.html';
+      btn.disabled = false;
     });
 
     init();

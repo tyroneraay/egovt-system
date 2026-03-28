@@ -13,6 +13,9 @@ app.get('/', (req, res) => {
 const approveRouter = require('./routes/approve');
 app.use('/api', approveRouter);
 
+const notifyRouter = require('./routes/notify');
+app.use('/api', notifyRouter);
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
