@@ -9,8 +9,21 @@ const supabase = createClient(
   process.env.SUPABASE_KEY
 );
 
+// ── Audit log helper ──────────────────────────────────────────
+async function logAction(userId, action, targetTable, targetId, details) {
+  await supabase.schema('public').from('audit_logs').insert({
+    user_id:      userId,
+    action:       action,
+    target_table: targetTable,
+    target_id:    targetId,
+    details:      details,
+    timestamp:    new Date(),
+  });
+}
+
 router.post('/approve/:id', async (req, res) => {
   const { id } = req.params;
+  const staffId = req.body.staff_id || null;
 
   try {
     console.log('Request ID received:', id);
@@ -52,10 +65,10 @@ router.post('/approve/:id', async (req, res) => {
 
     const pdfBuffer = await generatePDF({
       id:            request.id,
-      resident_name: resident.full_name,
+      resident_name: resident.full_name.toUpperCase(),
       age:           request.age,
       civil_status:  request.civil_status,
-      purpose:       request.purpose,
+      purpose:       request.purpose.toUpperCase(),
       document_name: docType.name,
       doc_number:    docNumber,
     });
@@ -96,6 +109,15 @@ router.post('/approve/:id', async (req, res) => {
     await supabase.schema('public').from('requests')
       .update({ status: 'approved', updated_at: new Date() })
       .eq('id', id);
+
+    // Log the action
+    await logAction(
+      staffId,
+      'APPROVED_REQUEST',
+      'requests',
+      id,
+      `Approved ${docType.name} for ${resident.full_name}`
+    );
 
     res.json({ success: true, pdf_url: pdfUrl });
 
